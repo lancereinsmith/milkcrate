@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Sample Docker Compose application for milkcrate.
+
+Demonstrates docker-compose.yml deployment with milkcrate.
+"""
+
+import os
+import sys
+from datetime import datetime
+
+import flask
+from flask import Flask, jsonify, redirect, render_template, request
+
+app = Flask(__name__)
+
+
+@app.before_request
+def ensure_trailing_slash():
+    """Ensure URLs have trailing slash for consistent relative path resolution.
+
+    Only applies to non-API routes (API endpoints should not have trailing slashes).
+    """
+    # Skip API routes entirely
+    if request.path.startswith("/api/"):
+        return None
+
+    # Skip root path and paths that already have trailing slash
+    if request.path == "/" or request.path.endswith("/"):
+        return None
+
+    # Redirect other paths to add trailing slash
+    return redirect(request.path + "/", code=301)
+
+
+@app.route("/")
+def index():
+    """Main page of the compose application."""
+    context = {
+        "deployment_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "container_id": os.environ.get("HOSTNAME", "unknown"),
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        "flask_version": getattr(flask, "__version__", "unknown"),
+    }
+    return render_template("index.html", **context)
+
+
+@app.route("/api/status")
+def status():
+    """API endpoint to check application status."""
+    return jsonify(
+        {
+            "status": "running",
+            "timestamp": datetime.now().isoformat(),
+            "deployment_type": "docker-compose",
+            "version": "1.0.0",
+        }
+    )
+
+
+@app.route("/api/health")
+@app.route("/health")
+def health():
+    """Health check endpoint."""
+    return jsonify(
+        {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+        }
+    )
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000, debug=False)

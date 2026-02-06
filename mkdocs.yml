@@ -1,0 +1,129 @@
+site_name: milkcrate Documentation
+site_description: A self-contained, web-based platform for deploying and managing containerized applications with Flask.
+site_author: Milkcrate
+repo_url: https://github.com/lancereinsmith/milkcrate
+
+theme:
+  name: material
+  logo: assets/img/logo.png
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - content.tabs.link
+    - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.path
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - tables
+  - fenced_code
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed
+  - mkdocs-click
+  - attr_list
+  - md_in_html
+  - mkdocs-click
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start: getting-started/getting-started.md
+      - Ubuntu Installation: getting-started/ubuntu-installation.md
+  - User Guide:
+      - Deploying Applications: user-guide/deployment.md
+      - Dockerfile Apps: user-guide/dockerfile-apps.md
+      - Docker Compose Apps: user-guide/docker-compose-apps.md
+      - Volume Management: user-guide/volumes.md
+      - Routing: user-guide/routing.md
+  - Production:
+      - Traefik Configuration: production/traefik.md
+      - Traefik Advanced Configuration: production/traefik-advanced.md
+      - HTTPS Setup: production/https-setup.md
+      - Multi-Website Setup: production/multi-website-setup.md
+      - Security: production/security.md
+      - Backups: production/backups.md
+  - Reference:
+      - CLI Reference: reference/cli.md
+      - Configuration: reference/configuration.md
+      - Nginx Reference: reference/nginx-reference.md
+  - Development:
+      - Running Milkcrate: development/running.md
+      - Architecture: development/architecture.md
+      - Blueprints & Routes: development/blueprints.md
+      - Database: development/database.md
+  - Support:
+      - Troubleshooting: support/troubleshooting.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: google
+            docstring_section_style: list
+            show_source: true
+            show_root_heading: true
+            show_signature_annotations: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+            separate_signature: true
+            line_length: 80
+            merge_init_into_class: true
+            show_if_no_docstring: false
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/lancereinsmith/milkcrate
+
+extra_css:
+  - assets/css/custom.css

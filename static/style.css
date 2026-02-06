@@ -1,0 +1,302 @@
+/* Milkcrate styles - Color scheme inspired by the logo */
+
+/* ==========================================================================
+   CSS Variables
+   ========================================================================== */
+:root {
+    /* Logo-inspired color palette */
+    --milkcrate-blue: #8FC9DC;
+    --milkcrate-blue-dark: #5FA8BE;
+    --milkcrate-tan: #C4945D;
+    --milkcrate-tan-dark: #A87B49;
+    --milkcrate-navy: #2C3E50;
+    --milkcrate-cream: #FFF8E7;
+    --milkcrate-light-blue: #E3F2F7;
+
+    /* Semantic colors */
+    --milkcrate-success: #4CAF50;
+    --milkcrate-success-dark: #2E7D32;
+    --milkcrate-danger: #E57373;
+    --milkcrate-danger-dark: #C62828;
+    --milkcrate-warning: #FFB74D;
+    --milkcrate-warning-dark: #F57C00;
+    --milkcrate-info: #64B5F6;
+
+    /* Neutral colors */
+    --milkcrate-gray-light: #f8f9fa;
+    --milkcrate-gray-border: #dee2e6;
+    --milkcrate-gray-muted: #6c757d;
+}
+
+/* ==========================================================================
+   Bootstrap Overrides
+   ========================================================================== */
+.btn-primary,
+.bg-primary {
+    background-color: var(--milkcrate-blue) !important;
+    border-color: var(--milkcrate-blue-dark) !important;
+    color: var(--milkcrate-navy) !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--milkcrate-blue-dark) !important;
+    border-color: var(--milkcrate-blue-dark) !important;
+    color: white !important;
+}
+
+.bg-secondary {
+    background-color: var(--milkcrate-tan) !important;
+    color: white !important;
+}
+
+.bg-success { background-color: var(--milkcrate-success) !important; }
+.bg-danger { background-color: var(--milkcrate-danger) !important; }
+.bg-info { background-color: var(--milkcrate-info) !important; }
+
+.bg-warning {
+    background-color: var(--milkcrate-warning) !important;
+    color: var(--milkcrate-navy) !important;
+}
+
+/* ==========================================================================
+   Cards & Tables
+   ========================================================================== */
+.dashboard-card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.card-header {
+    border-bottom: 2px solid var(--milkcrate-tan);
+}
+
+.table {
+    color: var(--milkcrate-navy);
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--milkcrate-light-blue);
+}
+
+/* ==========================================================================
+   Action Buttons
+   ========================================================================== */
+.btn-action {
+    border: 1.5px solid var(--milkcrate-gray-border) !important;
+    transition: all 0.2s ease;
+    min-width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.btn-group .btn-action {
+    margin-left: 0 !important;
+    border-radius: 0.375rem !important;
+}
+
+.btn-group .btn-action:not(:last-child) {
+    margin-right: -1.5px;
+}
+
+/* Action button colors */
+.btn-action-view { background-color: var(--milkcrate-blue); }
+.btn-action-update { background-color: var(--milkcrate-tan); }
+.btn-action-stop { background-color: var(--milkcrate-warning); }
+.btn-action-start { background-color: var(--milkcrate-success); }
+.btn-action-delete { background-color: var(--milkcrate-danger); }
+
+/* Action button hover states */
+.btn-action-view:hover { background-color: var(--milkcrate-blue-dark); }
+.btn-action-update:hover { background-color: var(--milkcrate-tan-dark); }
+.btn-action-stop:hover { background-color: var(--milkcrate-warning-dark); }
+.btn-action-start:hover { background-color: var(--milkcrate-success-dark); }
+.btn-action-delete:hover { background-color: var(--milkcrate-danger-dark); }
+
+.btn-action:hover {
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Disabled action buttons */
+.btn-action:disabled,
+.btn-action:disabled:hover {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #e9ecef;
+    color: var(--milkcrate-gray-muted);
+    transform: none;
+    box-shadow: none;
+}
+
+/* ==========================================================================
+   Badges
+   ========================================================================== */
+.badge {
+    border-radius: 6px;
+    padding: 0.35em 0.65em;
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   Loading States & Indicators
+   ========================================================================== */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.htmx-indicator {
+    opacity: 0;
+    transition: opacity 200ms ease-in;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   Code Blocks
+   ========================================================================== */
+code {
+    background-color: var(--milkcrate-cream);
+    color: var(--milkcrate-navy);
+    padding: 0.125rem 0.35rem;
+    border-radius: 4px;
+    border: 1px solid var(--milkcrate-blue);
+}
+
+pre {
+    background-color: var(--milkcrate-gray-light);
+    border: 1px solid var(--milkcrate-gray-border);
+    border-radius: 6px;
+}
+
+/* Reset code styling inside pre and dark backgrounds */
+pre code,
+.bg-dark code {
+    background-color: transparent;
+    border: none;
+}
+
+pre code { color: var(--milkcrate-navy); }
+.bg-dark code { color: var(--milkcrate-gray-light); }
+
+/* ==========================================================================
+   Public Index Page
+   ========================================================================== */
+.page-header-section {
+    background: linear-gradient(135deg, var(--milkcrate-light-blue) 0%, white 100%);
+    border-left: 4px solid var(--milkcrate-blue);
+}
+
+.app-card {
+    border: 2px solid transparent;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.app-card:hover {
+    border-color: var(--milkcrate-blue);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(143, 201, 220, 0.3) !important;
+}
+
+.app-card .card-title {
+    color: var(--milkcrate-navy);
+    font-weight: 600;
+}
+
+.btn-app-open {
+    background-color: var(--milkcrate-blue);
+    border-color: var(--milkcrate-blue-dark);
+    color: var(--milkcrate-navy);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-app-open:hover {
+    background-color: var(--milkcrate-blue-dark);
+    border-color: var(--milkcrate-blue-dark);
+    color: white;
+    transform: scale(1.05);
+}
+
+/* ==========================================================================
+   Links & Interactive Elements
+   ========================================================================== */
+.app-name-link {
+    color: var(--milkcrate-blue-dark);
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.app-name-link:hover {
+    color: var(--milkcrate-navy);
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Forms & Alerts
+   ========================================================================== */
+.alert-info {
+    background-color: var(--milkcrate-light-blue);
+    border-color: var(--milkcrate-blue);
+    color: var(--milkcrate-navy);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--milkcrate-blue);
+    box-shadow: 0 0 0 0.2rem rgba(143, 201, 220, 0.25);
+}
+
+/* ==========================================================================
+   Modals
+   ========================================================================== */
+.modal-header {
+    background-color: var(--milkcrate-light-blue);
+    border-bottom: 2px solid var(--milkcrate-blue);
+}
+
+.modal-title {
+    color: var(--milkcrate-navy);
+}
+
+/* ==========================================================================
+   Admin Dashboard Components
+   ========================================================================== */
+
+/* Auto-refresh toggle */
+#auto-refresh-toggle {
+    background-color: white;
+    border-color: #ccc;
+}
+
+#auto-refresh-toggle:checked {
+    background-color: #495057;
+    border-color: #495057;
+}
+
+/* Collapsible sections */
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+[data-bs-toggle="collapse"] {
+    cursor: pointer;
+}
+
+[data-bs-toggle="collapse"]:hover {
+    opacity: 0.9;
+}
+
+[data-bs-toggle="collapse"][aria-expanded="true"] .collapse-icon {
+    transform: rotate(180deg);
+}

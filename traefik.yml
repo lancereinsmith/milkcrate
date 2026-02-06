@@ -1,0 +1,41 @@
+api:
+  dashboard: true
+  insecure: true  # Set to false in production
+
+entryPoints:
+  web:
+    address: ":80"
+    # Uncomment for production HTTPS - redirects HTTP to HTTPS
+    # http:
+    #   redirections:
+    #     entrypoint:
+    #       to: websecure
+    #       scheme: https
+  websecure:
+    address: ":443"
+    # Uncomment for production HTTPS
+    # http:
+    #   tls:
+    #     certResolver: letsencrypt
+  traefik:
+    address: ":8080"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: milkcrate-traefik
+
+# Uncomment for production HTTPS with Let's Encrypt
+# certificatesResolvers:
+#   letsencrypt:
+#     acme:
+#       email: your-email@example.com  # CHANGE THIS
+#       storage: /acme.json
+#       httpChallenge:
+#         entryPoint: web
+
+log:
+  level: INFO
+
+accessLog: {}

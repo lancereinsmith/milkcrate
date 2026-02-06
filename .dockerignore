@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite
+
+# VCS
+.git
+.gitignore
+
+# Dev tools
+.venv
+.env
+.env.*
+uv.lock
+
+# Local runtime/state – mounted as volumes in compose
+uploads/
+extracted_apps/
+instance/
+
+# Host-only files
+acme.json
+
+# Node/Front-end caches
+node_modules/
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# Archives
+*.zip
+*.tar
+*.tar.gz

@@ -1,0 +1,16 @@
+/* Custom styles for MkDocs Material theme */
+
+/* Make the logo smaller in the header */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+    height: 2rem !important;
+    width: auto !important;
+}
+
+/* Make the logo smaller on the home page */
+.md-content img[alt*="logo"],
+.md-content img[alt*="milkcrate logo"] {
+    max-height: 300px !important;
+    width: auto !important;
+    height: auto !important;
+}

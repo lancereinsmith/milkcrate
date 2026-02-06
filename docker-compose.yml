@@ -1,0 +1,81 @@
+services:
+  traefik:
+    image: traefik:v3.6.7
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"     # HTTPS (for production)
+      - "127.0.0.1:8080:8080"   # Traefik dashboard (localhost only; use SSH tunnel for remote access)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./acme.json:/acme.json
+    networks:
+      - milkcrate-traefik
+    labels:
+      - "traefik.enable=true"
+      # Block external access to /traefik on port 80
+      - "traefik.http.routers.traefik-blocked.rule=(Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/traefik`)"
+      - "traefik.http.routers.traefik-blocked.entrypoints=web"
+      - "traefik.http.routers.traefik-blocked.priority=50"
+      - "traefik.http.routers.traefik-blocked.middlewares=block-traefik"
+      - "traefik.http.middlewares.block-traefik.errors.status=404"
+      - "traefik.http.middlewares.block-traefik.errors.service=noop@internal"
+      - "traefik.http.middlewares.block-traefik.errors.query=/"
+
+  milkcrate:
+    build: .
+    container_name: milkcrate
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./uploads:/app/uploads
+      - ./extracted_apps:/app/extracted_apps
+      - ./instance:/app/instance
+      - ./static:/app/static
+    environment:
+      - MILKCRATE_ENV=production
+      - SECRET_KEY=your-secret-key-change-in-production-using-environment-variable
+      # - MILKCRATE_ADMIN_PASSWORD=admin  ## This will override the password in the database.
+      - TRAEFIK_NETWORK=milkcrate-traefik
+      # - ENABLE_HTTPS=true  ## Enable HTTPS/Let's Encrypt mode (production only)
+      # - LETSENCRYPT_EMAIL=your-email@example.com  ## Required for Let's Encrypt
+    networks:
+      - milkcrate-traefik
+    labels:
+      - "traefik.enable=true"
+      # HTTP routes - High priority routes for admin functions
+      - "traefik.http.routers.milkcrate-admin.rule=PathPrefix(`/admin`) || PathPrefix(`/login`) || PathPrefix(`/logout`) || PathPrefix(`/upload`) || PathPrefix(`/static`) || PathPrefix(`/favicon.ico`)"
+      - "traefik.http.routers.milkcrate-admin.entrypoints=web"
+      - "traefik.http.routers.milkcrate-admin.priority=30"
+      - "traefik.http.routers.milkcrate-admin.service=milkcrate"
+      # HTTP routes - Fallback route for root and other unmatched paths
+      - "traefik.http.routers.milkcrate-fallback.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.milkcrate-fallback.entrypoints=web"
+      - "traefik.http.routers.milkcrate-fallback.priority=1"
+      - "traefik.http.routers.milkcrate-fallback.service=milkcrate"
+      # HTTPS routes - High priority routes for admin functions (uncomment for production HTTPS)
+      # - "traefik.http.routers.milkcrate-admin-secure.rule=PathPrefix(`/admin`) || PathPrefix(`/login`) || PathPrefix(`/logout`) || PathPrefix(`/upload`) || PathPrefix(`/static`) || PathPrefix(`/favicon.ico`)"
+      # - "traefik.http.routers.milkcrate-admin-secure.entrypoints=websecure"
+      # - "traefik.http.routers.milkcrate-admin-secure.priority=30"
+      # - "traefik.http.routers.milkcrate-admin-secure.tls.certresolver=letsencrypt"
+      # - "traefik.http.routers.milkcrate-admin-secure.service=milkcrate"
+      # HTTPS routes - Fallback route (uncomment for production HTTPS)
+      # - "traefik.http.routers.milkcrate-fallback-secure.rule=PathPrefix(`/`)"
+      # - "traefik.http.routers.milkcrate-fallback-secure.entrypoints=websecure"
+      # - "traefik.http.routers.milkcrate-fallback-secure.priority=1"
+      # - "traefik.http.routers.milkcrate-fallback-secure.tls.certresolver=letsencrypt"
+      # - "traefik.http.routers.milkcrate-fallback-secure.service=milkcrate"
+      # Service definition
+      - "traefik.http.services.milkcrate.loadbalancer.server.port=5001"
+
+networks:
+  milkcrate-traefik:
+    name: milkcrate-traefik
+    external: false
+
+volumes:
+  acme:

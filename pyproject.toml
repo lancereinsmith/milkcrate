@@ -1,0 +1,236 @@
+# --- Build ---
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# --- Project ---
+[project]
+name = "milkcrate"
+version = "0.1.0"
+description = "A Container Orchestration Platform with Flask"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{name = "Lance Reinsmith", email = "info@k2rad.com"}]
+license = {text = "MIT"}
+keywords = ["docker", "containers", "orchestration", "deployment", "flask", "traefik"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Framework :: Flask",
+    "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+    "flask>=3.1.2",
+    "flask-login>=0.6.3",
+    "docker>=7.1.0",
+    "requests>=2.32.5",
+    "werkzeug>=3.1.5",
+    "click>=8.3.1",
+    "flask-wtf>=1.2.2",
+    "pyyaml>=6.0.3",
+    "flask-limiter>=4.1.1",
+]
+
+[project.scripts]
+milkcrate = "milkcrate_core.cli:cli"
+milkcrate-dev = "app:main"
+
+# --- Dependency groups (PEP 735) ---
+[dependency-groups]
+dev = [
+    # Testing
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    # Linting, Formatting & Type Checking
+    "ruff>=0.15.0",
+    "rumdl>=0.1.13",
+    "ty>=0.0.15",
+    # Optional: used by security for self-signed certs; needed for ty to resolve
+    "cryptography>=46.0.4",
+]
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.1",
+    "pymdown-extensions>=10.20.1",
+    "mkdocs-click>=0.9.0",
+    "mkdocstrings[python]>=1.0.2",
+]
+
+[tool.uv]
+default-groups = ["dev", "docs"]
+
+# --- Hatch ---
+[tool.hatch.build]
+include = [
+    "database.py",
+    "app.py",
+    "templates/**/*",
+    "static/**/*",
+    "schema.sql",
+]
+exclude = [
+    "tests/**/*",
+    "docs/**/*",
+    "dev/**/*",
+    "sample_app/**/*",
+    "sample_compose_app/**/*",
+    "*.md",
+    ".git*",
+    "uploads/**/*",
+    "extracted_apps/**/*",
+    "instance/**/*",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["milkcrate_core", "blueprints", "services"]
+
+# --- Pytest ---
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = ["--strict-markers", "--strict-config", "--verbose"]
+
+# --- Coverage ---
+[tool.coverage.run]
+source = ["milkcrate_core", "blueprints", "services", "database"]
+omit = ["tests/*", "*/__pycache__/*", "*/migrations/*", "venv/*", ".venv/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+# --- Ruff ---
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    "build",
+    "dist",
+    "*.egg-info",
+    "htmlcov",
+    ".cache",
+    "node_modules",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "W",     # pycodestyle warnings
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "A",     # flake8-builtins
+    "C4",    # flake8-comprehensions
+    "DTZ",   # flake8-datetimez
+    "PIE",   # flake8-pie
+    "PT",    # flake8-pytest-style
+    "RSE",   # flake8-raise
+    "RET",   # flake8-return
+    "SIM",   # flake8-simplify
+    "PTH",   # flake8-use-pathlib
+    "PL",    # pylint
+    "PERF",  # perflint
+    "RUF",   # ruff-specific rules
+]
+ignore = [
+    "E501",    # Line too long (handled by formatter)
+    "PLR2004", # Magic value in comparison (too noisy, especially in tests)
+    "PLR0911", # Too many return statements
+    "PLR0912", # Too many branches
+    "PLR0913", # Too many arguments
+    "PLR0915", # Too many statements
+    "PTH",     # Use pathlib (prefer gradual migration, not enforced)
+    "RET504",  # Unnecessary assignment before return
+    "RET505",  # Unnecessary else after return
+    "DTZ005",  # datetime.now() without timezone (not all apps need timezone-aware)
+    "SIM105",  # Use contextlib.suppress (try/except is often clearer)
+    "SIM102",  # Collapsible if (sometimes separate ifs are clearer)
+    "SIM117",  # Use single with statement (nested is often clearer)
+    "PLW1510", # subprocess.run without check (handled case-by-case)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "PLC0415",  # Import outside top-level (tests often need scoped imports)
+    "PLR2004",  # Magic values (test assertions with status codes, etc.)
+    "F841",     # Unused variable (fixtures, etc.)
+    "PT001",    # Use @pytest.fixture() over @pytest.fixture
+]
+"milkcrate_core/cli.py" = [
+    "PLR0912",  # Too many branches (CLI commands are complex)
+    "PLR0915",  # Too many statements (CLI commands can be long)
+    "PLC0415",  # Import outside top-level (CLI commands use lazy imports)
+]
+"services/deploy.py" = [
+    "PLR0912",  # Too many branches (deployment logic is complex)
+    "PLR0915",  # Too many statements (deployment is complex)
+    "PLC0415",  # Import outside top-level (lazy imports for optional features)
+]
+"database.py" = [
+    "PLR0915",  # Too many statements (migration function is long)
+]
+"blueprints/**/*.py" = [
+    "PLC0415",  # Import outside top-level (blueprints use lazy imports)
+]
+"services/**/*.py" = [
+    "PLC0415",  # Import outside top-level (services use lazy imports)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+# --- Ty ---
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
+exclude = ["tests"]
+
+# --- Rumdl ---
+[tool.rumdl]
+flavor = "mkdocs"
+respect-gitignore = true
+exclude = ["node_modules", "build", "dist"]
+disable = ["MD013", "MD024", "MD033", "MD051", "MD007"]
+
+# Rule-specific configurations
+[tool.rumdl.MD007]
+indent = 2
+
+[tool.rumdl.MD013]
+line_length = 10000
+code_blocks = false
+tables = false
+
+[tool.rumdl.MD044]
+names = ["rumdl", "Markdown", "GitHub"]
+
+[tool.rumdl.MD048]
+style = "backtick"

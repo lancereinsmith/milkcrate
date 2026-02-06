@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="{{ request.path.rstrip('/') }}/">
+    <title>Compose App - milkcrate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { border: 1px solid #dee2e6; }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            background-color: #198754;
+            margin-right: 6px;
+        }
+        code { background-color: #e9ecef; padding: 2px 6px; border-radius: 4px; }
+        pre { background-color: #f1f3f5; padding: 1rem; border-radius: 6px; margin: 0; }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <!-- Header -->
+                <div class="text-center mb-4">
+                    <h1 class="h3">Docker Compose App</h1>
+                    <p class="text-muted">Multi-container deployment with milkcrate</p>
+                </div>
+
+                <!-- Status Card -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>Application Status</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <p class="mb-2">
+                                    <span class="status-dot"></span>
+                                    <strong>Running</strong>
+                                </p>
+                                <p class="mb-1 text-muted small">Container: <code>{{ container_id[:12] if container_id|length > 12 else container_id }}</code></p>
+                                <p class="mb-0 text-muted small">Loaded: {{ deployment_time }}</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <p class="mb-1 text-muted small">Python: {{ python_version }}</p>
+                                <p class="mb-1 text-muted small">Flask: {{ flask_version }}</p>
+                                <p class="mb-0 text-muted small">Type: <strong>docker-compose</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Endpoints Card -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>API Endpoints</strong>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3">Test the API endpoints:</p>
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-primary btn-sm" onclick="callApi('api/status')">
+                                GET /api/status
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="callApi('api/health')">
+                                GET /api/health
+                            </button>
+                        </div>
+                        <div id="api-response">
+                            <pre class="text-muted small">Click a button to test an endpoint...</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <strong>About Docker Compose Deployment</strong>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">This app demonstrates docker-compose.yml deployment with milkcrate.</p>
+                        <p class="mb-0 text-muted small">
+                            The <code>milkcrate.main_service=true</code> label identifies which service 
+                            receives incoming traffic through Traefik.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function callApi(endpoint) {
+            const responseDiv = document.getElementById('api-response');
+            responseDiv.innerHTML = '<pre class="text-muted small">Loading...</pre>';
+            
+            try {
+                // Use relative path - works with base tag
+                const url = new URL(endpoint, window.location.href);
+                console.log('Fetching:', url.href);
+                
+                const response = await fetch(endpoint);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                responseDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('API Error:', error);
+                responseDiv.innerHTML = '<pre class="text-danger">Error: ' + error.message + '\n\nCheck browser console (F12) for details.</pre>';
+            }
+        }
+    </script>
+</body>
+</html>

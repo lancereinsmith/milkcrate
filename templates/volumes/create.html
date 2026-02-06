@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Create Volume - milkcrate{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card upload-form shadow-lg border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-database me-2"></i>Create New Volume
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>About Volumes
+                        </h6>
+                        <ul class="mb-0">
+                            <li>Volumes are persistent storage for Docker containers</li>
+                            <li>Upload files that your containers can access</li>
+                            <li>Volumes can be mounted to multiple containers</li>
+                            <li>Data persists even when containers are stopped or deleted</li>
+                        </ul>
+                    </div>
+
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <label for="volume_name" class="form-label">
+                                <i class="fas fa-tag me-1"></i>Volume Name
+                            </label>
+                            <input type="text" class="form-control" id="volume_name" name="volume_name"
+                                   placeholder="my-data-volume" required>
+                            <div class="form-text">
+                                A unique name for your volume (letters, numbers, hyphens, underscores only)
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-comment me-1"></i>Description (Optional)
+                            </label>
+                            <textarea class="form-control" id="description" name="description"
+                                      rows="3" placeholder="Describe what this volume stores..."></textarea>
+                            <div class="form-text">
+                                Optional description to help you remember what this volume is for
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('volumes.list_volumes') }}"
+                               class="btn btn-secondary me-md-2 d-inline-flex align-items-center">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Create Volume
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Example Usage -->
+            <div class="card dashboard-card mt-4 border-0 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Example Usage
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p>After creating a volume, you can:</p>
+                    <ol>
+                        <li>Upload individual files or ZIP archives to the volume</li>
+                        <li>Mount the volume to containers during deployment</li>
+                        <li>Access the files from within your containerized applications</li>
+                    </ol>
+                    <p class="mb-0">
+                        <strong>Common use cases:</strong> Configuration files, database data,
+                        uploaded assets, shared libraries, certificates
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

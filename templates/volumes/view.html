@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}{{ volume.volume_name }} - milkcrate{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+.drop-zone {
+    min-height: 200px;
+    border: 3px dashed #dee2e6;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background-color: #f8f9fa;
+}
+
+.drop-zone:hover {
+    border-color: #0d6efd;
+    background-color: #e7f1ff;
+}
+
+.drop-zone.dragover {
+    border-color: #0d6efd;
+    background-color: #cfe2ff;
+    border-style: solid;
+}
+
+.drop-zone-icon {
+    font-size: 3rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.drop-zone.dragover .drop-zone-icon {
+    color: #0d6efd;
+}
+
+.file-input-hidden {
+    display: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="fas fa-database me-2"></i>{{ volume.volume_name }}
+                </h2>
+                <a href="{{ url_for('volumes.list_volumes') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Volumes
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Volume Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Volume Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Volume Name:</dt>
+                                <dd class="col-sm-8">{{ volume.volume_name }}</dd>
+
+                                <dt class="col-sm-4">Docker Volume:</dt>
+                                <dd class="col-sm-8"><code>{{ volume.docker_volume_name }}</code></dd>
+
+                                <dt class="col-sm-4">Description:</dt>
+                                <dd class="col-sm-8">{{ volume.description or 'No description' }}</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Files:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-info">{{ volume.file_count }} files</span>
+                                </dd>
+
+                                <dt class="col-sm-4">Total Size:</dt>
+                                <dd class="col-sm-8">
+                                    {% if volume.total_size_bytes < 1024 %}
+                                        {{ volume.total_size_bytes }} B
+                                    {% elif volume.total_size_bytes < 1048576 %}
+                                        {{ "%.2f"|format(volume.total_size_bytes / 1024) }} KB
+                                    {% elif volume.total_size_bytes < 1073741824 %}
+                                        {{ "%.2f"|format(volume.total_size_bytes / 1048576) }} MB
+                                    {% else %}
+                                        {{ "%.2f"|format(volume.total_size_bytes / 1073741824) }} GB
+                                    {% endif %}
+                                </dd>
+
+                                <dt class="col-sm-4">Created:</dt>
+                                <dd class="col-sm-8">{{ volume.created_date }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Upload Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cloud-upload-alt me-2"></i>Upload Files
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data"
+                          action="{{ url_for('volumes.upload_file', volume_id=volume.volume_id) }}"
+                          id="uploadForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="file" class="file-input-hidden" id="fileInput" name="file" required>
+
+                        <div class="drop-zone" id="dropZone">
+                            <div class="drop-zone-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <h5>Drag & Drop Files Here</h5>
+                            <p class="text-muted">or click to browse</p>
+                        </div>
+
+                        <div class="mt-3" id="fileInfo" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-file me-2"></i>
+                                <strong>Selected file:</strong> <span id="fileName"></span>
+                                <span id="fileSize" class="text-muted"></span>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Supported formats:</strong> Individual files or ZIP archives.
+                            ZIP files will be automatically extracted.
+                        </div>
+
+                        <button type="submit" class="btn btn-primary mt-2" id="uploadBtn" disabled>
+                            <i class="fas fa-upload me-2"></i>Upload File
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Files List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-folder-open me-2"></i>Files in Volume
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if files %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Path</th>
+                                    <th>Size</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for file in files %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-file me-2 text-muted"></i>
+                                        {{ file.name }}
+                                    </td>
+                                    <td>
+                                        <code>{{ file.path }}</code>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {% if file.size < 1024 %}
+                                                {{ file.size }} B
+                                            {% elif file.size < 1048576 %}
+                                                {{ "%.2f"|format(file.size / 1024) }} KB
+                                            {% elif file.size < 1073741824 %}
+                                                {{ "%.2f"|format(file.size / 1048576) }} MB
+                                            {% else %}
+                                                {{ "%.2f"|format(file.size / 1073741824) }} GB
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Files Yet</h5>
+                        <p class="text-muted">Upload files using the drag-and-drop area above.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadForm = document.getElementById('uploadForm');
+
+    // Prevent default drag behaviors on the entire window
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        window.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Click to browse - but prevent if clicking the button
+    dropZone.addEventListener('click', function(e) {
+        // Don't trigger file input if clicking the submit button
+        if (e.target.id !== 'uploadBtn' && !e.target.closest('#uploadBtn')) {
+            fileInput.click();
+        }
+    });
+
+    // Drag and drop handlers
+    dropZone.addEventListener('dragenter', function(e) {
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragover', function(e) {
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', function(e) {
+        // Only remove dragover if leaving the dropzone itself
+        if (e.target === dropZone) {
+            dropZone.classList.remove('dragover');
+        }
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+        dropZone.classList.remove('dragover');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            // Create a new DataTransfer to set files on input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(files[0]);
+            fileInput.files = dataTransfer.files;
+            updateFileInfo(files[0]);
+        }
+    });
+
+    // File input change handler
+    fileInput.addEventListener('change', function(e) {
+        // Prevent the change event from bubbling
+        e.stopPropagation();
+        
+        if (fileInput.files.length > 0) {
+            updateFileInfo(fileInput.files[0]);
+        }
+    });
+
+    // Prevent form submission on button click, just show the file
+    uploadBtn.addEventListener('click', function(e) {
+        // Don't prevent default - let the form submit normally
+    });
+
+    function updateFileInfo(file) {
+        fileName.textContent = file.name;
+        
+        let size = file.size;
+        let sizeStr = '';
+        if (size < 1024) {
+            sizeStr = size + ' B';
+        } else if (size < 1048576) {
+            sizeStr = (size / 1024).toFixed(2) + ' KB';
+        } else if (size < 1073741824) {
+            sizeStr = (size / 1048576).toFixed(2) + ' MB';
+        } else {
+            sizeStr = (size / 1073741824).toFixed(2) + ' GB';
+        }
+        fileSize.textContent = '(' + sizeStr + ')';
+        
+        fileInfo.style.display = 'block';
+        uploadBtn.disabled = false;
+    }
+});
+</script>
+{% endblock %}

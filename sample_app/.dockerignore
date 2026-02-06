@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite
+
+# VCS
+.git
+.gitignore
+
+# Dev tools
+.venv
+.env
+.env.*
+uv.lock
+
+# Node/Front-end caches
+node_modules/
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# Archives
+*.zip
+
+# Packaging script
+package_sample_app.sh

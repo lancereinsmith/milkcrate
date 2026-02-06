@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - milkcrate{% endblock %}
+
+{% block head %}
+{{ super() }}
+<!-- Prevent aggressive caching of admin dashboard -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard
+                </h2>
+                <div>
+                    <a href="{{ url_for('volumes.list_volumes') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-database me-2"></i>Manage Volumes
+                    </a>
+                    <a href="{{ url_for('upload.upload_app') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Deploy New App
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if apps %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cube me-2"></i>Deployed Applications
+                    </h5>
+                    <div class="d-flex align-items-center">
+                        <div class="form-check form-switch me-3">
+                            <input class="form-check-input" type="checkbox" id="auto-refresh-toggle" checked>
+                            <label class="form-check-label text-white" for="auto-refresh-toggle">
+                                <small>Auto-refresh (10s)</small>
+                            </label>
+                        </div>
+                        <button class="btn btn-light btn-sm" 
+                                hx-get="{{ url_for('admin.get_status_badges_htmx') }}"
+                                hx-target="tbody"
+                                hx-swap="innerHTML"
+                                hx-indicator="#status-loading"
+                                title="Refresh status now">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>App Name</th>
+                                    <th>Status 
+                                        <small id="status-loading" class="htmx-indicator text-muted">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                        </small>
+                                    </th>
+                                    <th>Route</th>
+                                    <th>Internal Port</th>
+                                    <th>Container ID</th>
+                                    <th>Deployed</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="apps-table-body"
+                                   hx-get="{{ url_for('admin.get_status_badges_htmx') }}" 
+                                   hx-trigger="every 5s [#auto-refresh-toggle:checked]" 
+                                   hx-swap="innerHTML"
+                                   hx-indicator="#status-loading">
+                                {% for app in apps %}
+                                <tr>
+                                    <td>
+                                        <strong>
+                                            <a href="#" class="text-decoration-none app-name-link" 
+                                               data-bs-toggle="modal" data-bs-target="#appDetails{{ app.app_id }}"
+                                               title="Click to view details">
+                                                {{ app.app_name }}
+                                            </a>
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        {% set real_status = app.get('real_status', app.status) %}
+                                        {% set display_status = app.get('display_status', app.status) %}
+                                        {% set badge_color = app.get('badge_color', 'secondary') %}
+
+                                        <span class="badge bg-{{ badge_color }}"
+                                            title="Last checked: {{ app.get('last_status_check', 'Unknown') }}">
+                                            <i class="fas fa-circle me-1"></i>{{ display_status }}
+                                        </span>
+                                        {% if app.get('health_check') and app.health_check.is_healthy %}
+                                        <i class="fa fa-heart text-success ml-1" title="Health check passed"></i>
+                                        {% elif app.get('health_check') and not app.health_check.is_healthy %}
+                                        <i class="fa fa-exclamation-triangle text-warning ml-1"
+                                            title="Health check failed"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ app.public_route }}" target="_blank" rel="noopener"
+                                            class="text-decoration-none" title="Open route in new tab">
+                                            <code>{{ app.public_route }}</code>
+                                        </a>
+                                    </td>
+
+                                    <td>
+                                        <span class="badge bg-info">{{ app.internal_port }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted font-monospace">
+                                            {{ app.container_id[:12] }}...
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ app.deployment_date }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ app.public_route }}" target="_blank" rel="noopener"
+                                                class="btn btn-action btn-action-view" data-bs-toggle="tooltip"
+                                                title="Open route in new tab">
+                                                <i class="fas fa-up-right-from-square"></i>
+                                            </a>
+
+                                            <button type="button" class="btn btn-action btn-action-update"
+                                                data-bs-toggle="modal" data-bs-target="#updateModal{{ app.app_id }}"
+                                                data-bs-toggle="tooltip" title="Update app">
+                                                <i class="fas fa-upload"></i>
+                                            </button>
+
+                                            {% set real_status = app.get('real_status', app.status) %}
+                                            {% if real_status in ['ready', 'healthy', 'running'] %}
+                                            <button type="button" class="btn btn-action btn-action-stop"
+                                                data-bs-toggle="tooltip" title="Stop"
+                                                data-action="toggle"
+                                                data-app-id="{{ app.app_id }}"
+                                                data-csrf-token="{{ csrf_token() }}">
+                                                <i class="fas fa-stop"></i>
+                                            </button>
+                                            {% elif real_status in ['stopped', 'exited'] %}
+                                            <button type="button" class="btn btn-action btn-action-start"
+                                                data-bs-toggle="tooltip" title="Start"
+                                                data-action="toggle"
+                                                data-app-id="{{ app.app_id }}"
+                                                data-csrf-token="{{ csrf_token() }}">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                            {% else %}
+                                            <button type="button" class="btn btn-action" disabled
+                                                data-bs-toggle="tooltip"
+                                                title="Can only start/stop when Ready/Healthy/Running or Stopped (Current: {{ real_status }})">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                            {% endif %}
+
+                                            <button type="button" class="btn btn-action btn-action-delete btn-delete"
+                                                data-app-name="{{ app.app_name }}" data-bs-toggle="tooltip"
+                                                title="Delete"
+                                                data-action="delete"
+                                                data-app-id="{{ app.app_id }}"
+                                                data-csrf-token="{{ csrf_token() }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- App Details Modal -->
+                                <div class="modal fade" id="appDetails{{ app.app_id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">
+                                                    <i class="fas fa-cube me-2"></i>{{ app.app_name }} Details
+                                                </h5>
+                                                <button type="button" class="btn-close"
+                                                    data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6>Application Information</h6>
+                                                        <dl class="row">
+                                                            <dt class="col-sm-4">App Name:</dt>
+                                                            <dd class="col-sm-8">{{ app.app_name }}</dd>
+
+                                                            <dt class="col-sm-4">Status:</dt>
+                                                            <dd class="col-sm-8">
+                                                                {% set real_status = app.get('real_status', app.status) %}
+                                                                {% set display_status = app.get('display_status', app.status) %}
+                                                                {% set badge_color = app.get('badge_color', 'secondary') %}
+                                                                <span class="badge bg-{{ badge_color }}">
+                                                                    <i class="fas fa-circle me-1"></i>{{ display_status }}
+                                                                </span>
+                                                                {% if app.get('health_check') and app.health_check.is_healthy %}
+                                                                <i class="fa fa-heart text-success ms-1" title="Health check passed"></i>
+                                                                {% elif app.get('health_check') and not app.health_check.is_healthy %}
+                                                                <i class="fa fa-exclamation-triangle text-warning ms-1" title="Health check failed"></i>
+                                                                {% endif %}
+                                                            </dd>
+
+                                                            <dt class="col-sm-4">Route:</dt>
+                                                            <dd class="col-sm-8"><code>{{ app.public_route }}</code>
+                                                            </dd>
+                                                        </dl>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6>Technical Details</h6>
+                                                        <dl class="row">
+                                                            <dt class="col-sm-4">Container ID:</dt>
+                                                            <dd class="col-sm-8">
+                                                                <small class="font-monospace">{{ app.container_id
+                                                                    }}</small>
+                                                            </dd>
+
+                                                            <dt class="col-sm-4">Image Tag:</dt>
+                                                            <dd class="col-sm-8">
+                                                                <small class="font-monospace">{{ app.image_tag
+                                                                    }}</small>
+                                                            </dd>
+
+                                                            <dt class="col-sm-4">Internal Port:</dt>
+                                                            <dd class="col-sm-8">{{ app.internal_port }}</dd>
+
+                                                            <dt class="col-sm-4">Deployed:</dt>
+                                                            <dd class="col-sm-8">{{ app.deployment_date }}</dd>
+                                                        </dl>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Update App Modal -->
+                                <div class="modal fade" id="updateModal{{ app.app_id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">
+                                                    <i class="fas fa-upload me-2"></i>Update {{ app.app_name }}
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form method="POST" action="{{ url_for('admin.update_app_route', app_id=app.app_id) }}" 
+                                                  enctype="multipart/form-data" id="updateForm{{ app.app_id }}">
+                                                <div class="modal-body">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    
+                                                    <div class="alert alert-info">
+                                                        <i class="fas fa-info-circle me-2"></i>
+                                                        <strong>Note:</strong> This will stop the current container, deploy the new version, 
+                                                        and start it with the same route <code>{{ app.public_route }}</code>.
+                                                    </div>
+                                                    
+                                                    <div class="mb-3">
+                                                        <label for="updateFile{{ app.app_id }}" class="form-label">
+                                                            <i class="fas fa-file-archive me-2"></i>Choose ZIP File
+                                                        </label>
+                                                        <input type="file" class="form-control" id="updateFile{{ app.app_id }}" 
+                                                               name="file" accept=".zip" required>
+                                                        <div class="form-text">
+                                                            Upload a ZIP file containing your updated application with a Dockerfile.
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="mb-3">
+                                                        <h6>Current App Info:</h6>
+                                                        <dl class="row">
+                                                            <dt class="col-sm-4">App Name:</dt>
+                                                            <dd class="col-sm-8">{{ app.app_name }}</dd>
+                                                            <dt class="col-sm-4">Route:</dt>
+                                                            <dd class="col-sm-8"><code>{{ app.public_route }}</code></dd>
+                                                            <dt class="col-sm-4">Current Status:</dt>
+                                                            <dd class="col-sm-8">
+                                                                {% set real_status = app.get('real_status', app.status) %}
+                                                                {% set display_status = app.get('display_status', app.status) %}
+                                                                {% set badge_color = app.get('badge_color', 'secondary') %}
+                                                                <span class="badge bg-{{ badge_color }}">{{ display_status }}</span>
+                                                            </dd>
+                                                        </dl>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        Cancel
+                                                    </button>
+                                                    <button type="submit" class="btn btn-primary">
+                                                        <i class="fas fa-upload me-2"></i>Update Application
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-cube fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted">No Applications Deployed</h4>
+                    <p class="text-muted mb-4">
+                        Get started by deploying your first containerized application.
+                    </p>
+                    <a href="{{ url_for('upload.upload_app') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-upload me-2"></i>Deploy Your First App
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Configuration Settings -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
+                     role="button" data-bs-toggle="collapse" data-bs-target="#configSettingsBody"
+                     aria-expanded="false" aria-controls="configSettingsBody">
+                    <h6 class="mb-0">
+                        <i class="fas fa-cog me-2"></i>Configuration Settings
+                    </h6>
+                    <i class="fas fa-chevron-down collapse-icon"></i>
+                </div>
+                <div class="collapse" id="configSettingsBody">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <form method="POST" action="{{ url_for('admin.update_default_route') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <label for="default_route" class="form-label">Default Home Route</label>
+                                <select class="form-select" id="default_route" name="default_route">
+                                    <option value="" {% if not default_route %}selected{% endif %}>
+                                        Show app listing (default)
+                                    </option>
+                                    {% if apps %}
+                                    {% for app in apps %}
+                                    <option value="{{ app.public_route }}" {% if default_route==app.public_route
+                                        %}selected{% endif %}>
+                                        {{ app.public_route }} ({{ app.app_name }})
+                                        {% if app.status != 'running' %} ({{ app.status }}){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                    {% endif %}
+                                </select>
+                                <div class="form-text">
+                                    When users visit "/", they will be redirected to the selected route.
+                                    {% if not apps %}
+                                    <br><em>No deployed apps available. Deploy an app first to set it as the default
+                                        route.</em>
+                                    {% else %}
+                                    Choose "Show app listing" to display all apps on the home page, or select a specific
+                                    app to redirect to.
+                                    {% endif %}
+                                </div>
+                                <button type="submit" class="btn btn-primary mt-3">
+                                    <i class="fas fa-save me-2"></i>Update Default Route
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-3">
+
+                        </div>
+                        <div class="col-md-3">
+                            {% if env_override_active %}
+                            <div class="alert alert-info mt-3 mb-0">
+                                <i class="fas fa-circle-info me-2"></i>
+                                Environment override <code>MILKCRATE_ADMIN_PASSWORD</code> is set. It will override
+                                the stored password on login.
+                            </div>
+                            {% else %}
+                            <form method="POST" action="{{ url_for('admin.update_admin_password') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <label for="new_password" class="form-label">Set Admin Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password"
+                                    placeholder="Enter new password" required>
+                                <label for="confirm_password" class="form-label mt-3">Confirm Password</label>
+                                <input type="password" class="form-control" id="confirm_password"
+                                    name="confirm_password" placeholder="Re-enter new password" required>
+                                <button type="submit" class="btn btn-success mt-3">
+                                    <i class="fas fa-key me-2"></i>Update Admin Password
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='admin.js') }}?v=2"></script>
+{% endblock %}

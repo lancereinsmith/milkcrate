@@ -1,0 +1,97 @@
+{% for app in apps %}
+<tr>
+    <td>
+        <strong>
+            <a href="#" class="text-decoration-none app-name-link" 
+               data-bs-toggle="modal" data-bs-target="#appDetails{{ app.app_id }}"
+               title="Click to view details">
+                {{ app.app_name }}
+            </a>
+        </strong>
+    </td>
+    <td>
+        {% set real_status = app.get('real_status', app.status) %}
+        {% set display_status = app.get('display_status', app.status) %}
+        {% set badge_color = app.get('badge_color', 'secondary') %}
+
+        <span class="badge bg-{{ badge_color }}"
+            title="Last checked: {{ app.get('last_status_check', 'Unknown') }}">
+            <i class="fas fa-circle me-1"></i>{{ display_status }}
+        </span>
+        {% if app.get('health_check') and app.health_check.is_healthy %}
+        <i class="fa fa-heart text-success ml-1" title="Health check passed"></i>
+        {% elif app.get('health_check') and not app.health_check.is_healthy %}
+        <i class="fa fa-exclamation-triangle text-warning ml-1"
+            title="Health check failed"></i>
+        {% endif %}
+    </td>
+    <td>
+        <a href="{{ app.public_route }}" target="_blank" rel="noopener"
+            class="text-decoration-none" title="Open route in new tab">
+            <code>{{ app.public_route }}</code>
+        </a>
+    </td>
+    <td>
+        <span class="badge bg-info">{{ app.internal_port }}</span>
+    </td>
+    <td>
+        <small class="text-muted font-monospace">
+            {{ app.container_id[:12] }}...
+        </small>
+    </td>
+    <td>
+        <small class="text-muted">
+            {{ app.deployment_date }}
+        </small>
+    </td>
+    <td>
+        <div class="btn-group btn-group-sm" role="group">
+            <a href="{{ app.public_route }}" target="_blank" rel="noopener"
+                class="btn btn-action btn-action-view" data-bs-toggle="tooltip"
+                title="Open route in new tab">
+                <i class="fas fa-up-right-from-square"></i>
+            </a>
+
+            <button type="button" class="btn btn-action btn-action-update"
+                data-bs-toggle="modal" data-bs-target="#updateModal{{ app.app_id }}"
+                data-bs-toggle="tooltip" title="Update app">
+                <i class="fas fa-upload"></i>
+            </button>
+
+            {% set real_status = app.get('real_status', app.status) %}
+            {% if real_status in ['ready', 'healthy', 'running'] %}
+            <button type="button" class="btn btn-action btn-action-stop"
+                data-bs-toggle="tooltip" title="Stop"
+                data-action="toggle"
+                data-app-id="{{ app.app_id }}"
+                data-csrf-token="{{ csrf_token() }}">
+                <i class="fas fa-stop"></i>
+            </button>
+            {% elif real_status in ['stopped', 'exited'] %}
+            <button type="button" class="btn btn-action btn-action-start"
+                data-bs-toggle="tooltip" title="Start"
+                data-action="toggle"
+                data-app-id="{{ app.app_id }}"
+                data-csrf-token="{{ csrf_token() }}">
+                <i class="fas fa-play"></i>
+            </button>
+            {% else %}
+            <button type="button" class="btn btn-action" disabled
+                data-bs-toggle="tooltip"
+                title="Can only start/stop when Ready/Healthy/Running or Stopped (Current: {{ real_status }})">
+                <i class="fas fa-ban"></i>
+            </button>
+            {% endif %}
+
+            <button type="button" class="btn btn-action btn-action-delete btn-delete"
+                data-app-name="{{ app.app_name }}" data-bs-toggle="tooltip"
+                title="Delete"
+                data-action="delete"
+                data-app-id="{{ app.app_id }}"
+                data-csrf-token="{{ csrf_token() }}">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    </td>
+</tr>
+{% endfor %}

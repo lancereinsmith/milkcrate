@@ -1,0 +1,62 @@
+name: Tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.12", "3.13", "3.14"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        version: "latest"
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: uv sync --group dev
+
+    - name: Create required directories
+      run: |
+        uv run python -c "import os; os.makedirs('uploads', exist_ok=True); os.makedirs('extracted_apps', exist_ok=True); os.makedirs('instance', exist_ok=True)"
+
+    - name: Run tests
+      run: uv run pytest
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        version: "latest"
+        python-version: "3.14"
+
+    - name: Install dependencies
+      run: uv sync --group dev
+
+    - name: Run linting
+      run: uv run ruff check .
+
+    - name: Type checking
+      run: uv run ty check .
