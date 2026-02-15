@@ -37,6 +37,22 @@ class DevelopmentConfig(BaseConfig):
 class ProductionConfig(BaseConfig):
     DEBUG = False
 
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
+
+    @classmethod
+    def validate(cls) -> None:
+        """Raise if critical settings are still at their insecure defaults."""
+        default_keys = {
+            "dev-key-change-in-production",
+            "your-secret-key-change-in-production-using-environment-variable",
+        }
+        if cls.SECRET_KEY in default_keys:
+            raise ValueError(
+                "SECRET_KEY is set to an insecure default. "
+                "Set the SECRET_KEY environment variable before running in production."
+            )
+
 
 def get_config():
     """Return a config class based on the MILKCRATE_ENV environment variable."""

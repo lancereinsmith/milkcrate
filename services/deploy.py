@@ -18,6 +18,36 @@ from services.compose_parser import (
 )
 
 
+def _default_security_policies() -> dict:
+    """Return the default security and resource policies for deployed containers."""
+    return {
+        # Resource limits
+        "mem_limit": "512m",
+        "memswap_limit": "512m",
+        "cpu_period": 100000,
+        "cpu_quota": 50000,
+        "pids_limit": 100,
+        # Security policies
+        "read_only": False,
+        "cap_drop": ["ALL"],
+        "cap_add": ["NET_BIND_SERVICE"],
+        "security_opt": [
+            "no-new-privileges:true",
+            "apparmor:unconfined",
+        ],
+        "user": "nobody:nogroup",
+        # Filesystem security
+        "tmpfs": {
+            "/tmp": "rw,noexec,nosuid,size=100m",
+        },
+        # Logging configuration
+        "log_config": {
+            "type": "json-file",
+            "config": {"max-size": "10m", "max-file": "3"},
+        },
+    }
+
+
 def _parse_bool(val: str) -> bool:
     """Parse a string as boolean for env config."""
     return str(val).strip().lower() in ("1", "true", "yes", "on")
@@ -232,33 +262,7 @@ def deploy_application(
                     None,
                 )
 
-        # Security and resource policies for containers
-        security_policies = {
-            # Resource limits
-            "mem_limit": "512m",  # 512MB memory limit
-            "memswap_limit": "512m",  # Same as memory (no swap)
-            "cpu_period": 100000,  # 100ms period
-            "cpu_quota": 50000,  # 50% of CPU
-            "pids_limit": 100,  # Limit number of processes
-            # Security policies
-            "read_only": False,  # Keep writable for app functionality
-            "cap_drop": ["ALL"],  # Drop all capabilities
-            "cap_add": ["NET_BIND_SERVICE"],  # Only allow binding to ports
-            "security_opt": [
-                "no-new-privileges:true",  # Prevent privilege escalation
-                "apparmor:unconfined",  # Use default AppArmor profile
-            ],
-            "user": "nobody:nogroup",  # Run as non-root user when possible
-            # Filesystem security
-            "tmpfs": {
-                "/tmp": "rw,noexec,nosuid,size=100m",  # Secure tmp directory
-            },
-            # Logging configuration
-            "log_config": {
-                "type": "json-file",
-                "config": {"max-size": "10m", "max-file": "3"},
-            },
-        }
+        security_policies = _default_security_policies()
 
         # Prepare volume mounts if provided
         volumes_dict = volume_mounts if volume_mounts else {}
@@ -1006,33 +1010,7 @@ def update_application(
             100 + len(public_route.strip("/").split("/")) * 10 + len(public_route)
         )
 
-        # Security and resource policies for containers
-        security_policies = {
-            # Resource limits
-            "mem_limit": "512m",  # 512MB memory limit
-            "memswap_limit": "512m",  # Same as memory (no swap)
-            "cpu_period": 100000,  # 100ms period
-            "cpu_quota": 50000,  # 50% of CPU
-            "pids_limit": 100,  # Limit number of processes
-            # Security policies
-            "read_only": False,  # Keep writable for app functionality
-            "cap_drop": ["ALL"],  # Drop all capabilities
-            "cap_add": ["NET_BIND_SERVICE"],  # Only allow binding to ports
-            "security_opt": [
-                "no-new-privileges:true",  # Prevent privilege escalation
-                "apparmor:unconfined",  # Use default AppArmor profile
-            ],
-            "user": "nobody:nogroup",  # Run as non-root user when possible
-            # Filesystem security
-            "tmpfs": {
-                "/tmp": "rw,noexec,nosuid,size=100m",  # Secure tmp directory
-            },
-            # Logging configuration
-            "log_config": {
-                "type": "json-file",
-                "config": {"max-size": "10m", "max-file": "3"},
-            },
-        }
+        security_policies = _default_security_policies()
 
         # Generate Traefik labels with HTTPS support if enabled
         traefik_labels = _generate_traefik_labels(

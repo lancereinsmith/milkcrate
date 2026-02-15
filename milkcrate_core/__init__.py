@@ -45,6 +45,9 @@ def create_app(test_config: dict | None = None) -> Flask:
     if test_config is None:
         config_obj = get_config()
         app.config.from_object(config_obj)
+        # Validate production settings
+        if hasattr(config_obj, "validate"):
+            config_obj.validate()
     else:
         app.config.update(test_config)
 

@@ -294,22 +294,9 @@ class TestContainerSecurity:
 
     def test_security_policies_structure(self):
         """Test that security policies are properly structured."""
-        # This would test the security_policies dict from deploy.py
-        # We can't easily test Docker container creation in unit tests
-        # but we can verify the structure
+        from services.deploy import _default_security_policies
 
-        # Mock the security policies structure
-        security_policies = {
-            "mem_limit": "512m",
-            "memswap_limit": "512m",
-            "cpu_period": 100000,
-            "cpu_quota": 50000,
-            "pids_limit": 100,
-            "cap_drop": ["ALL"],
-            "cap_add": ["NET_BIND_SERVICE"],
-            "security_opt": ["no-new-privileges:true", "apparmor:unconfined"],
-            "user": "nobody:nogroup",
-        }
+        security_policies = _default_security_policies()
 
         # Verify required security settings
         assert security_policies["mem_limit"] == "512m"
