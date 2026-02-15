@@ -5,6 +5,8 @@ Follows the recommended Flask pattern for SQLite connections using the
 application context global `g` and teardown callbacks.
 """
 
+import hmac
+import logging
 import os
 import sqlite3
 
@@ -12,6 +14,8 @@ import click
 from flask import Flask, current_app, g
 from flask.cli import with_appcontext
 from werkzeug.security import check_password_hash, generate_password_hash
+
+logger = logging.getLogger(__name__)
 
 
 def get_db() -> sqlite3.Connection:
@@ -141,49 +145,58 @@ def update_app_status(app_id: int, status: str) -> None:
     db.commit()
 
 
+def _apply_fallback_status(app_dict: dict) -> None:
+    """Apply basic fallback status fields when enhanced status is unavailable."""
+    status = app_dict.get("status", "")
+    app_dict.update(
+        {
+            "real_status": status,
+            "display_status": status.title() if status else "Unknown",
+            "badge_color": "success" if status == "running" else "secondary",
+            "status_details": {},
+            "last_status_check": "Status checking unavailable",
+        }
+    )
+
+
+def _apply_enhanced_status(app_dict: dict, status_info: dict) -> None:
+    """Apply enhanced status fields from the status manager."""
+    app_dict.update(
+        {
+            "real_status": status_info["status"],
+            "display_status": status_info["display_status"],
+            "badge_color": status_info["badge_color"],
+            "status_details": status_info,
+            "last_status_check": status_info["last_checked"],
+        }
+    )
+
+
+def _enhance_app_status(app_dict: dict) -> None:
+    """Try to enhance an app dict with real-time Docker status, falling back to basic."""
+    try:
+        from services.status_manager import get_status_manager  # noqa: PLC0415
+
+        status_manager = get_status_manager()
+        status_info = status_manager.get_comprehensive_status(
+            container_id=app_dict["container_id"],
+            app_name=app_dict["app_name"],
+            public_route=app_dict["public_route"],
+            internal_port=app_dict["internal_port"],
+        )
+        _apply_enhanced_status(app_dict, status_info)
+    except Exception:
+        _apply_fallback_status(app_dict)
+
+
 def get_app_with_real_status(app_id: int) -> dict | None:
     """Get application with real-time Docker status check."""
     app = get_app_by_id(app_id)
     if not app:
         return None
 
-    # Try to get enhanced status, but fallback to basic status if it fails
     app_dict = dict(app)
-
-    try:
-        from services.status_manager import get_status_manager  # noqa: PLC0415
-
-        # Get comprehensive status
-        status_manager = get_status_manager()
-        status_info = status_manager.get_comprehensive_status(
-            container_id=app["container_id"],
-            app_name=app["app_name"],
-            public_route=app["public_route"],
-            internal_port=app["internal_port"],
-        )
-
-        # Update the app dictionary with enhanced status
-        app_dict.update(
-            {
-                "real_status": status_info["status"],
-                "display_status": status_info["display_status"],
-                "badge_color": status_info["badge_color"],
-                "status_details": status_info,
-                "last_status_check": status_info["last_checked"],
-            }
-        )
-    except Exception:
-        # Fallback to basic status information if enhanced status fails
-        app_dict.update(
-            {
-                "real_status": app["status"],
-                "display_status": app["status"].title() if app["status"] else "Unknown",
-                "badge_color": "success" if app["status"] == "running" else "secondary",
-                "status_details": {},
-                "last_status_check": "Status checking unavailable",
-            }
-        )
-
+    _enhance_app_status(app_dict)
     return app_dict
 
 
@@ -192,69 +205,9 @@ def get_all_apps_with_real_status() -> list[dict]:
     apps = get_all_apps()
     enhanced_apps = []
 
-    # Try to use enhanced status manager, but fallback if it fails
-    try:
-        from services.status_manager import get_status_manager  # noqa: PLC0415
-
-        status_manager = get_status_manager()
-        use_enhanced = True
-    except Exception:
-        use_enhanced = False
-
     for app in apps:
         app_dict = dict(app)
-
-        if use_enhanced:
-            try:
-                # Get comprehensive status for each app
-                status_info = status_manager.get_comprehensive_status(
-                    container_id=app["container_id"],
-                    app_name=app["app_name"],
-                    public_route=app["public_route"],
-                    internal_port=app["internal_port"],
-                )
-
-                # Create enhanced app dictionary
-                app_dict.update(
-                    {
-                        "real_status": status_info["status"],
-                        "display_status": status_info["display_status"],
-                        "badge_color": status_info["badge_color"],
-                        "status_details": status_info,
-                        "last_status_check": status_info["last_checked"],
-                    }
-                )
-            except Exception:
-                # Fallback to basic status for this app
-                app_dict.update(
-                    {
-                        "real_status": app["status"],
-                        "display_status": app["status"].title()
-                        if app["status"]
-                        else "Unknown",
-                        "badge_color": "success"
-                        if app["status"] == "running"
-                        else "secondary",
-                        "status_details": {},
-                        "last_status_check": "Status checking unavailable",
-                    }
-                )
-        else:
-            # Use basic status information for all apps
-            app_dict.update(
-                {
-                    "real_status": app["status"],
-                    "display_status": app["status"].title()
-                    if app["status"]
-                    else "Unknown",
-                    "badge_color": "success"
-                    if app["status"] == "running"
-                    else "secondary",
-                    "status_details": {},
-                    "last_status_check": "Status checking unavailable",
-                }
-            )
-
+        _enhance_app_status(app_dict)
         enhanced_apps.append(app_dict)
 
     return enhanced_apps
@@ -324,6 +277,12 @@ def _migrate_schema_if_needed(db: sqlite3.Connection) -> None:
             db.execute("ALTER TABLE deployed_apps ADD COLUMN volume_mounts TEXT")
             db.commit()
 
+        # Ensure public_route index exists (may be missing on older databases)
+        db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_public_route ON deployed_apps(public_route)"
+        )
+        db.commit()
+
         # Check if settings table exists, create if not
         cursor = db.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='settings'"
@@ -372,7 +331,7 @@ def _migrate_schema_if_needed(db: sqlite3.Connection) -> None:
             db.commit()
     except sqlite3.Error:
         # If migration fails, we don't want to crash app startup; leave as-is
-        pass
+        logger.warning("Database schema migration failed", exc_info=True)
 
 
 def get_setting(key: str) -> str | None:
@@ -466,7 +425,7 @@ def verify_admin_password(provided_password: str) -> bool:
     # Highest priority: environment override (always plain text)
     env_override = os.environ.get("MILKCRATE_ADMIN_PASSWORD", "")
     if str(env_override).strip():
-        return provided_password == str(env_override)
+        return hmac.compare_digest(provided_password, str(env_override))
 
     # Check database stored password (may be hashed or plain text)
     db_value = get_setting("admin_password")
@@ -476,10 +435,10 @@ def verify_admin_password(provided_password: str) -> bool:
         if stored_password.startswith(("pbkdf2:", "scrypt:", "argon2:")):
             return check_password_hash(stored_password, provided_password)
         # Plain text password
-        return provided_password == stored_password
+        return hmac.compare_digest(provided_password, stored_password)
 
     # Default fallback
-    return provided_password == "admin"
+    return hmac.compare_digest(provided_password, "admin")
 
 
 def get_app_by_route(public_route: str) -> sqlite3.Row | None:

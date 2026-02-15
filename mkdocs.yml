@@ -97,6 +97,7 @@ nav:
       - Architecture: development/architecture.md
       - Blueprints & Routes: development/blueprints.md
       - Database: development/database.md
+      - Changelog: development/changelog.md
   - Support:
       - Troubleshooting: support/troubleshooting.md
 

@@ -27,6 +27,9 @@ CREATE INDEX IF NOT EXISTS idx_internal_port ON deployed_apps(internal_port);
 -- Create an index on deployment_type for filtering
 CREATE INDEX IF NOT EXISTS idx_deployment_type ON deployed_apps(deployment_type);
 
+-- Create an index on public_route for faster lookups
+CREATE INDEX IF NOT EXISTS idx_public_route ON deployed_apps(public_route);
+
 -- Settings table for storing configuration options
 DROP TABLE IF EXISTS settings;
 CREATE TABLE settings (

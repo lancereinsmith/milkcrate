@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 # --- Project ---
 [project]
 name = "milkcrate"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Container Orchestration Platform with Flask"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -46,18 +46,18 @@ dev = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     # Linting, Formatting & Type Checking
-    "ruff>=0.15.0",
-    "rumdl>=0.1.13",
-    "ty>=0.0.15",
+    "ruff>=0.15.1",
+    "rumdl>=0.1.21",
+    "ty>=0.0.17",
     # Optional: used by security for self-signed certs; needed for ty to resolve
-    "cryptography>=46.0.4",
+    "cryptography>=46.0.5",
 ]
 docs = [
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.7.1",
-    "pymdown-extensions>=10.20.1",
+    "pymdown-extensions>=10.21",
     "mkdocs-click>=0.9.0",
-    "mkdocstrings[python]>=1.0.2",
+    "mkdocstrings[python]>=1.0.3",
 ]
 
 [tool.uv]

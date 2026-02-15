@@ -57,18 +57,28 @@ def find_project_root() -> Path:
 
 
 def run_command(
-    cmd: str, cwd: Path | None = None, check: bool = True
+    cmd: str | list[str], cwd: Path | None = None, check: bool = True
 ) -> subprocess.CompletedProcess:
-    """Run a shell command with proper error handling."""
+    """Run a command with proper error handling.
+
+    Args:
+        cmd: Command as a string (will be split via shlex) or list of arguments.
+        cwd: Working directory for the command.
+        check: Whether to check the return code.
+    """
+    import shlex
+
+    cmd_list = shlex.split(cmd) if isinstance(cmd, str) else cmd
+    cmd_display = cmd if isinstance(cmd, str) else " ".join(cmd)
     try:
         result = subprocess.run(
-            cmd, shell=True, cwd=cwd, capture_output=True, text=True, check=check
+            cmd_list, cwd=cwd, capture_output=True, text=True, check=check
         )
         if result.stdout:
             click.echo(result.stdout.strip())
         return result
     except subprocess.CalledProcessError as e:
-        click.echo(f"Command failed: {cmd}", err=True)
+        click.echo(f"Command failed: {cmd_display}", err=True)
         if e.stderr:
             click.echo(f"Error: {e.stderr.strip()}", err=True)
         if e.stdout:
@@ -233,10 +243,28 @@ def install():
 
 
 @cli.command("init-db")
-def init_db():
-    """Initialize the SQLite database."""
-    click.echo("🗄️  Initializing database...")
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="Skip confirmation prompt (data will be destroyed).",
+)
+def init_db(yes: bool):
+    """Initialize the SQLite database.
+
+    WARNING: This drops and recreates all tables, destroying existing data.
+    """
     project_root = find_project_root()
+    db_path = project_root / "instance" / "milkcrate.sqlite"
+
+    if db_path.exists() and not yes:
+        if not click.confirm(
+            "⚠️  This will destroy all existing data and recreate the database. Continue?"
+        ):
+            click.echo("Cancelled.")
+            return
+
+    click.echo("🗄️  Initializing database...")
 
     # Change to project root and run the initialization
     os.chdir(project_root)
