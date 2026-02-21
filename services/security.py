@@ -34,7 +34,7 @@ class SecurityHeaders:
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
             "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
             "img-src 'self' data: https:; "
-            "connect-src 'self'; "
+            "connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "
             "form-action 'self';"
